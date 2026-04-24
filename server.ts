@@ -108,10 +108,8 @@ async function edgeTTS(text: string, voice: string, rate: number = 1, pitch: num
 }
 
 async function fetchGoogleTTS(text: string, lang: string, slow: boolean = false): Promise<Buffer> {
-  // Google TTS api mostly expects short language codes (vi, en, fr, etc.)
-  const shortLang = lang.split('-')[0].split('_')[0];
   const url = googleTTS.getAudioUrl(text.slice(0, 200), {
-    lang: shortLang,
+    lang: lang,
     slow: slow,
     host: 'https://translate.google.com',
   });
@@ -158,58 +156,45 @@ async function startServer() {
     }
   });
 
-  // API Route for Cloud TTS Proxy (Using Google Translate for Maximum Stability)
+  // API Route for Cloud TTS Proxy (Handles Edge and Google Fallback)
   app.get("/api/tts-proxy", async (req, res) => {
     try {
-      const { text, lang = 'vi', download, rate = '1' } = req.query;
+      const { text, lang = 'vi', download, voiceId, rate = '1', volume = '1' } = req.query;
       
       if (!text) return res.status(400).send("Text is required");
 
-      const rawText = text.toString();
       const r = parseFloat(rate as string) || 1;
-      const targetLang = lang?.toString() || 'vi';
+      const v = parseFloat(volume as string) || 1;
+      const vId = voiceId?.toString() || '';
 
-      // Split text into 200-character chunks because Google TTS has a limit
-      const chunks: string[] = [];
-      const MAX_CHUNK_LENGTH = 180;
-      
-      // Smart split by sentence or space
-      let remaining = rawText;
-      while (remaining.length > 0) {
-        if (remaining.length <= MAX_CHUNK_LENGTH) {
-          chunks.push(remaining);
-          break;
+      let buffer: Buffer;
+
+      if (vId.includes('-') && vId.includes('Neural')) {
+        try {
+          console.log(`Generating Edge TTS: ${vId} [${lang}]`);
+          // Always use pitch 1
+          buffer = await edgeTTS(text.toString(), vId, r, 1, v);
+          console.log(`Edge TTS Success: ${buffer.length} bytes`);
+        } catch (error) {
+          console.error("Edge TTS Failed:", error instanceof Error ? error.message : error);
+          // Only fallback to Google if absolute failure but attempt to keep language
+          const fallbackLang = vId.split('-')[0] || lang?.toString() || 'vi';
+          console.warn(`Falling back to Google TTS (${fallbackLang}) due to Edge TTS error.`);
+          buffer = await fetchGoogleTTS(text.toString(), fallbackLang, r < 0.8);
         }
-        
-        let splitIdx = remaining.lastIndexOf('.', MAX_CHUNK_LENGTH);
-        if (splitIdx === -1) splitIdx = remaining.lastIndexOf('?', MAX_CHUNK_LENGTH);
-        if (splitIdx === -1) splitIdx = remaining.lastIndexOf('!', MAX_CHUNK_LENGTH);
-        if (splitIdx === -1) splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK_LENGTH);
-        if (splitIdx === -1) splitIdx = MAX_CHUNK_LENGTH;
-        
-        chunks.push(remaining.substring(0, splitIdx + 1).trim());
-        remaining = remaining.substring(splitIdx + 1).trim();
+      } else {
+        console.log(`Using Google TTS Fallback/Direct: ${lang}`);
+        buffer = await fetchGoogleTTS(text.toString(), lang?.toString() || 'vi', r < 0.8);
       }
-
-      console.log(`Processing Google TTS [${targetLang}] - Chunks: ${chunks.length}`);
-      
-      const buffers: Buffer[] = [];
-      for (const chunk of chunks) {
-        if (!chunk) continue;
-        const buffer = await fetchGoogleTTS(chunk, targetLang, r < 0.8);
-        buffers.push(buffer);
-      }
-
-      const finalBuffer = Buffer.concat(buffers);
 
       res.setHeader('Content-Type', 'audio/mpeg');
       if (download === 'true') {
-        res.setHeader('Content-Disposition', 'attachment; filename="google-speech.mp3"');
+        res.setHeader('Content-Disposition', 'attachment; filename="voxstudio-speech.mp3"');
       }
-      res.send(finalBuffer);
+      res.send(buffer);
     } catch (error) {
       console.error("TTS Proxy Error:", error);
-      res.status(500).json({ error: "Dịch vụ Google TTS tạm thời không khả dụng." });
+      res.status(500).send("Failed to process speech request");
     }
   });
 

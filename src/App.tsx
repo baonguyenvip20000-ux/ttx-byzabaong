@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -19,44 +19,39 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface VoiceOption {
-  name: string;
-  lang: string;
-  voice: SpeechSynthesisVoice;
-}
-
 export default function App() {
   const [text, setText] = useState('');
-  const [voices, setVoices] = useState<VoiceOption[]>([]);
-  
-  // Dynamically generate supported languages from PRO_VOICES plus some standard ones
-  const initialLangs = Array.from(new Set([
-    'vi-VN', 'en-US', 'en-GB', 'en-AU', 'ja-JP', 'ko-KR', 'fr-FR', 'de-DE', 'es-ES', 'zh-CN', 'id-ID', 'th-TH', 'ru-RU', 'it-IT', 'pt-BR', 'ar-SA'
-  ]));
-  const [languages, setLanguages] = useState<string[]>(initialLangs);
+  const [languages, setLanguages] = useState<string[]>(['vi-VN', 'en-US', 'en-GB', 'en-AU', 'ja-JP', 'ko-KR', 'fr-FR', 'de-DE', 'es-ES', 'zh-CN', 'id-ID', 'th-TH', 'ru-RU']);
   const [selectedLang, setSelectedLang] = useState('vi-VN');
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [useCloud, setUseCloud] = useState(true);
-  const [isCloudLoading, setIsCloudLoading] = useState(false);
+  const useCloud = true; // Always use cloud now
   const [cloudAudioUrl, setCloudAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const PRO_VOICES = [
-    { id: 'google-standard-vi', name: 'Giọng Google (Tiếng Việt)', lang: 'vi', quality: 'Ổn định', type: 'Nữ', country: 'Vietnam' },
-    { id: 'google-standard-en', name: 'Google Voice (English)', lang: 'en', quality: 'Ổn định', type: 'Nữ', country: 'USA' },
-    { id: 'google-standard-ja', name: 'Google Voice (日本語)', lang: 'ja', quality: 'Ổn định', type: 'Nữ', country: 'Japan' },
-    { id: 'google-standard-ko', name: 'Google Voice (한국어)', lang: 'ko', quality: 'Ổn định', type: 'Nữ', country: 'Korea' },
-    { id: 'google-standard-zh', name: 'Google Voice (中文)', lang: 'zh', quality: 'Ổn định', type: 'Nữ', country: 'China' },
-    { id: 'google-standard-fr', name: 'Google Voice (Français)', lang: 'fr', quality: 'Ổn định', type: 'Nữ', country: 'France' },
-    { id: 'google-standard-de', name: 'Google Voice (Deutsch)', lang: 'de', quality: 'Ổn định', type: 'Nữ', country: 'Germany' },
-    { id: 'google-standard-es', name: 'Google Voice (Español)', lang: 'es', quality: 'Ổn định', type: 'Nữ', country: 'Spain' },
-    { id: 'google-standard-id', name: 'Google Voice (Bahasa)', lang: 'id', quality: 'Ổn định', type: 'Nữ', country: 'Indonesia' },
-    { id: 'google-standard-th', name: 'Google Voice (ไทย)', lang: 'th', quality: 'Ổn định', type: 'Nữ', country: 'Thailand' },
-    { id: 'google-standard-ru', name: 'Google Voice (Русский)', lang: 'ru', quality: 'Ổn định', type: 'Nữ', country: 'Russia' },
-    { id: 'google-standard-it', name: 'Google Voice (Italiano)', lang: 'it', quality: 'Ổn định', type: 'Nữ', country: 'Italy' },
-    { id: 'google-standard-pt', name: 'Google Voice (Português)', lang: 'pt', quality: 'Ổn định', type: 'Nữ', country: 'Brazil' },
-    { id: 'google-standard-ar', name: 'Google Voice (العربية)', lang: 'ar', quality: 'Ổn định', type: 'Nữ', country: 'Saudi Arabia' }
+    // Vietnam
+    { id: 'vi-VN-HoaiMyNeural', name: 'Giọng Google (Việt Nam)', lang: 'vi', quality: 'Ưu việt', type: 'Nữ', country: 'Vietnam' },
+    
+    // International (Edge Neural)
+    { id: 'en-US-AvaNeural', name: 'Giọng Google (Mỹ)', lang: 'en', quality: 'AI Neural', type: 'Nữ', country: 'USA' },
+    { id: 'en-GB-SoniaNeural', name: 'Giọng Google (Anh)', lang: 'en', quality: 'AI Neural', type: 'Nữ', country: 'UK' },
+    { id: 'en-AU-NatashaNeural', name: 'Giọng Google (Úc)', lang: 'en', quality: 'AI Neural', type: 'Nữ', country: 'Australia' },
+    { id: 'ja-JP-NanamiNeural', name: 'Giọng Google (Nhật Bản)', lang: 'ja', quality: 'AI Neural', type: 'Nữ', country: 'Japan' },
+    { id: 'ko-KR-SunHiNeural', name: 'Giọng Google (Hàn Quốc)', lang: 'ko', quality: 'AI Neural', type: 'Nữ', country: 'Korea' },
+    { id: 'fr-FR-DeniseNeural', name: 'Giọng Google (Pháp)', lang: 'fr', quality: 'AI Neural', type: 'Nữ', country: 'France' },
+    { id: 'de-DE-KatjaNeural', name: 'Giọng Google (Đức)', lang: 'de', quality: 'AI Neural', type: 'Nữ', country: 'Germany' },
+    { id: 'es-ES-ElviraNeural', name: 'Giọng Google (Tây Ban Nha)', lang: 'es', quality: 'AI Neural', type: 'Nữ', country: 'Spain' },
+    { id: 'es-MX-DaliaNeural', name: 'Giọng Google (Mexico)', lang: 'es', quality: 'AI Neural', type: 'Nữ', country: 'Mexico' },
+    { id: 'zh-CN-XiaoxiaoNeural', name: 'Giọng Google (Trung Quốc)', lang: 'zh', quality: 'AI Neural', type: 'Nữ', country: 'China' },
+    { id: 'zh-TW-HsiaoChenNeural', name: 'Giọng Google (Đài Loan)', lang: 'zh', quality: 'AI Neural', type: 'Nữ', country: 'Taiwan' },
+    { id: 'id-ID-GadisNeural', name: 'Giọng Google (Indonesia)', lang: 'id', quality: 'AI Neural', type: 'Nữ', country: 'Indonesia' },
+    { id: 'th-TH-PremwadeeNeural', name: 'Giọng Google (Thái Lan)', lang: 'th', quality: 'AI Neural', type: 'Nữ', country: 'Thailand' },
+    { id: 'ar-SA-ZariyahNeural', name: 'Giọng Google (Ả Rập)', lang: 'ar', quality: 'AI Neural', type: 'Nữ', country: 'Saudi Arabia' },
+    { id: 'ru-RU-SvetlanaNeural', name: 'Giọng Google (Nga)', lang: 'ru', quality: 'AI Neural', type: 'Nữ', country: 'Russia' },
+    { id: 'it-IT-ElsaNeural', name: 'Giọng Google (Ý)', lang: 'it', quality: 'AI Neural', type: 'Nữ', country: 'Italy' },
+    { id: 'pt-BR-FranciscaNeural', name: 'Giọng Google (Brazil)', lang: 'pt', quality: 'AI Neural', type: 'Nữ', country: 'Brazil' },
   ];
+
+  const [selectedProVoice, setSelectedProVoice] = useState(PRO_VOICES[0]);
 
   // Helper to get flag and friendly name
   const getLanguageLabel = (langTag: string) => {
@@ -97,135 +92,47 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
 
-  const filteredProVoices = useMemo(() => {
-    const list = PRO_VOICES.filter(v => {
-      const matchesLang = selectedLang.startsWith(v.lang);
-      const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesGender = genderFilter === 'all' || v.type === genderFilter;
-      return matchesLang && matchesSearch && matchesGender;
-    });
-
-    if (list.length === 0 && !searchTerm) {
-      const langCode = selectedLang.split('-')[0];
-      list.push({
-        id: `google-standard-${langCode}`,
-        name: `Google Standard (${getLanguageLabel(selectedLang)})`,
-        lang: langCode,
-        quality: 'Tiêu chuẩn',
-        type: 'Nữ',
-        country: 'Global'
-      });
-    }
-    return list;
-  }, [selectedLang, searchTerm, genderFilter]);
-
-  const [selectedProVoice, setSelectedProVoice] = useState(PRO_VOICES[0]);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState<string | null>(null);
 
   // Automatically update selectedProVoice when language changes
   useEffect(() => {
-    if (filteredProVoices.length > 0) {
-      const isCurrentValid = filteredProVoices.some(v => v.id === selectedProVoice.id);
-      if (!isCurrentValid) {
-        setSelectedProVoice(filteredProVoices[0]);
-      }
+    const firstProVoiceOfLang = PRO_VOICES.find(v => selectedLang.startsWith(v.lang));
+    if (firstProVoiceOfLang) {
+      setSelectedProVoice(firstProVoiceOfLang);
     }
-  }, [selectedLang, filteredProVoices, selectedProVoice.id]);
+  }, [selectedLang]);
 
-  // Sync volume with audio element and speech synth
+  // Sync volume with audio element
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
-    }
-    // Update active utterance if exists
-    if (utteranceRef.current) {
-      utteranceRef.current.volume = volume;
     }
   }, [volume]);
 
   // Reactive playback rate for audio element
   useEffect(() => {
-    if (utteranceRef.current && !useCloud) {
-       utteranceRef.current.rate = rate;
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
     }
   }, [rate]);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentWord, setCurrentWord] = useState('');
-  
-  const synth = window.speechSynthesis;
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const loadVoices = () => {
-      const availableVoices = synth.getVoices();
-      
-      if (availableVoices.length === 0 && attempts < maxAttempts) {
-        attempts++;
-        setTimeout(loadVoices, 200);
-        return;
-      }
-
-      const options = availableVoices.filter(v => !v.lang.toLowerCase().includes('vi')).map(v => ({
-        name: v.name,
-        lang: v.lang,
-        voice: v
-      }));
-      setVoices(options);
-      
-      const proLangs = PRO_VOICES.map(v => v.lang);
-      const uniqueLangs = Array.from(new Set([...options.map(v => v.lang), ...proLangs])).sort((a, b) => {
-        const aIsVi = a.toLowerCase().includes('vi');
-        const bIsVi = b.toLowerCase().includes('vi');
-        if (aIsVi && !bIsVi) return -1;
-        if (!aIsVi && bIsVi) return 1;
-        return a.localeCompare(b);
-      });
-      
-      // Force 'vi-VN' to be present and first if it was somehow filtered
-      if (!uniqueLangs.some(l => l.toLowerCase().includes('vi'))) {
-        uniqueLangs.unshift('vi-VN');
-      }
-      
-      setLanguages(uniqueLangs);
-
-      if (uniqueLangs.length > 0) {
-        // Find if any Vietnamese language exists
-        const viLang = uniqueLangs.find(l => l.toLowerCase().includes('vi'));
-        
-        // Priority: Use found viLang, or force 'vi-VN' at the top
-        const firstLang = viLang || uniqueLangs[0];
-        setSelectedLang(firstLang);
-        
-        // Final sanity check: if Vi exists, it should be first in the array
-        const sortedWithVip = [...uniqueLangs].sort((a, b) => {
-          const aIsVi = a.toLowerCase().includes('vi');
-          const bIsVi = b.toLowerCase().includes('vi');
-          if (aIsVi && !bIsVi) return -1;
-          if (!aIsVi && bIsVi) return 1;
-          return a.localeCompare(b);
-        });
-        setLanguages(sortedWithVip);
-
-        const viVoices = options.filter(v => v.lang.toLowerCase().includes('vi'));
-        const defaultVoice = viVoices[0]?.voice || options.find(o => o.lang === firstLang)?.voice || availableVoices[0] || null;
-        setSelectedVoice(defaultVoice);
-      }
-    };
-
-    loadVoices();
-    if (synth.onvoiceschanged !== undefined) {
-      synth.onvoiceschanged = loadVoices;
-    }
-
-    return () => {
-      synth.cancel();
-    };
+    // Only load languages from PRO_VOICES
+    const uniqueLangs = Array.from(new Set(['vi-VN', 'en-US', 'en-GB', 'en-AU', 'ja-JP', 'ko-KR', 'fr-FR', 'de-DE', 'es-ES', 'zh-CN', 'id-ID', 'th-TH', 'ru-RU', 'ar-SA', 'ru-RU', 'it-IT', 'pt-BR'])).sort((a, b) => {
+      const aIsVi = a.toLowerCase().includes('vi');
+      const bIsVi = b.toLowerCase().includes('vi');
+      if (aIsVi && !bIsVi) return -1;
+      if (!aIsVi && bIsVi) return 1;
+      return a.localeCompare(b);
+    });
+    
+    setLanguages(uniqueLangs);
+    setSelectedLang('vi-VN');
   }, []);
 
   useEffect(() => {
@@ -238,115 +145,68 @@ export default function App() {
   }, [selectedLang, useCloud]);
 
   const handleSpeak = async () => {
-    if (isPaused && !useCloud) {
-      synth.resume();
-      setIsPaused(false);
-      setIsSpeaking(true);
-      return;
-    }
-
     if (!text) return;
 
-    if (useCloud) {
-      try {
-        setIsCloudLoading(true);
-        setIsSpeaking(true);
+    try {
+      setIsSpeaking(true);
+      
+      const maxChars = 5000;
+      const textToSpeak = text.length > maxChars ? text.slice(0, maxChars) : text;
+      const proxyUrl = `/api/tts-proxy?text=${encodeURIComponent(textToSpeak)}&lang=${selectedProVoice.lang}&voiceId=${selectedProVoice.id}&volume=${volume}&cb=${Date.now()}`;
+      
+      setCloudAudioUrl(proxyUrl);
+      if (audioRef.current) {
+        audioRef.current.volume = volume;
+        audioRef.current.playbackRate = rate; 
+        audioRef.current.pause();
+        audioRef.current.src = proxyUrl;
+        audioRef.current.load();
         
-        const maxChars = 2000;
-        const textToSpeak = text.length > maxChars ? text.slice(0, maxChars) : text;
-        const proxyUrl = `/api/tts-proxy?text=${encodeURIComponent(textToSpeak)}&lang=${selectedProVoice.lang}&voiceId=${selectedProVoice.id}&rate=${rate}&volume=${volume}&cb=${Date.now()}`;
-        
-        // Fetch manually to check for errors (like 503)
-        const response = await fetch(proxyUrl);
-        if (!response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Dịch vụ Cloud TTS tạm thời không khả dụng.");
+        audioRef.current.oncanplay = () => {
+          if (audioRef.current) {
+            audioRef.current.playbackRate = rate;
           }
-          throw new Error("Không thể kết nối với máy chủ âm thanh.");
-        }
+        };
 
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        
-        setCloudAudioUrl(url);
-        if (audioRef.current) {
-          audioRef.current.volume = volume;
-          audioRef.current.src = url;
-          
-          try {
-            await audioRef.current.play();
-          } catch (playError) {
-            if (playError instanceof Error && playError.name !== 'AbortError') {
-              console.error("Playback failed", playError.message);
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            if (error.name !== 'AbortError') {
+              console.error("Playback failed", error instanceof Error ? error.message : "Unknown error");
             }
-          }
-
-          audioRef.current.onended = () => {
-            setIsSpeaking(false);
-            setCurrentWord('');
-            URL.revokeObjectURL(url);
-          };
+          });
         }
-      } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : "Đã xảy ra lỗi không xác định.";
-        alert(`Lỗi phát âm: ${errorMsg}`);
-        setIsSpeaking(false);
-      } finally {
-        setIsCloudLoading(false);
+
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+          setCurrentWord('');
+        };
       }
-      return;
+    } catch (e) {
+      console.error("TTS Error", e instanceof Error ? e.message : "Unknown error");
+      setIsSpeaking(false);
     }
-    // ... rest of local synthesis logic
-
-    synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = rate;
-    utterance.volume = volume;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setIsPaused(false);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-      setCurrentWord('');
-    };
-
-    utterance.onpause = () => {
-      setIsPaused(true);
-      setIsSpeaking(false);
-    };
-
-    utterance.onresume = () => {
-      setIsPaused(false);
-      setIsSpeaking(true);
-    };
-
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        const word = text.slice(event.charIndex, event.charIndex + event.charLength);
-        setCurrentWord(word);
-      }
-    };
-
-    utteranceRef.current = utterance;
-    synth.speak(utterance);
   };
 
   const handlePause = () => {
-    if (isSpeaking) {
-      synth.pause();
+    if (audioRef.current) {
+      if (isSpeaking) {
+        audioRef.current.pause();
+        setIsSpeaking(false);
+        setIsPaused(true);
+      } else if (isPaused) {
+        audioRef.current.play();
+        setIsSpeaking(true);
+        setIsPaused(false);
+      }
     }
   };
 
   const handleStop = () => {
-    synth.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     setIsSpeaking(false);
     setIsPaused(false);
     setCurrentWord('');
@@ -378,64 +238,44 @@ export default function App() {
         'pt': "Olá, este é um exemplo da minha voz."
       };
 
-      const previewText = samples[voice.lang] || "Hello, this is a test.";
+      // Fallback: use base language if full code not found
+      const baseLang = voice.lang.split('-')[0];
+      const previewText = samples[voice.lang] || samples[baseLang] || "Hello, this is a sample text.";
       const url = `/api/tts-proxy?text=${encodeURIComponent(previewText)}&lang=${voice.lang}&voiceId=${voice.id}&rate=1&volume=1&cb=${Date.now()}`;
       
-      // Stop current preview
       if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-        previewAudioRef.current.src = "";
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Không thể tải giọng nghe thử.");
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      if (previewAudioRef.current) {
-        previewAudioRef.current.src = blobUrl;
-        
-        try {
-          await previewAudioRef.current.play();
-        } catch (playError) {
-          if (playError instanceof Error && playError.name !== 'AbortError') {
-             console.error("Playback failed", playError.message);
-          }
-        }
-        
-        previewAudioRef.current.onended = () => {
-          URL.revokeObjectURL(blobUrl);
-        };
+        previewAudioRef.current.src = url;
+        previewAudioRef.current.load();
+        previewAudioRef.current.playbackRate = 1;
+        await previewAudioRef.current.play();
       }
     } catch (error) {
       console.error("Preview failed", error);
-      alert(`Lỗi nghe thử: ${error instanceof Error ? error.message : "Vui lòng thử lại sau."}`);
     } finally {
       setIsPreviewLoading(null);
     }
   };
 
+  const filteredProVoices = PRO_VOICES.filter(v => {
+    const matchesLang = selectedLang.startsWith(v.lang);
+    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGender = genderFilter === 'all' || v.type === genderFilter;
+    return matchesLang && matchesSearch && matchesGender;
+  });
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 flex flex-col font-sans overflow-hidden">
-      <audio ref={previewAudioRef} className="hidden" />
+      <audio ref={previewAudioRef} className="hidden" onCanPlay={(e) => {
+        (e.target as HTMLAudioElement).playbackRate = 1;
+      }} />
       <audio 
         ref={audioRef} 
         className="hidden" 
         onError={(e) => {
           const target = e.target as HTMLAudioElement;
           const error = target.error;
-          console.error("Audio Load Error Code:", error?.code);
-          let msg = "Không thể phát âm thanh. Vui lòng thử lại hoặc chọn giọng đọc khác.";
-          if (error?.code === 4) {
-            msg = "Lỗi kết nối máy chủ hoặc dịch vụ TTS tạm thời không khả dụng. Vui lòng thử lại sau.";
-          }
-          alert(`Lỗi: ${msg}`);
+          console.error("Audio Load Error:", error?.code);
           setIsSpeaking(false);
-          setIsCloudLoading(false);
         }}
       />
       {/* Top Navigation */}
@@ -452,7 +292,7 @@ export default function App() {
           <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-full border border-slate-700">
             <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-slate-600'}`}></div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              {isCloudLoading ? 'Đang kết nối Cloud...' : (isSpeaking ? 'Đang phát' : 'Đang chờ')}
+              {isSpeaking ? 'Đang phát' : 'Đang chờ'}
             </span>
           </div>
           <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-indigo-500/30 flex items-center justify-center text-xs font-bold text-slate-300 overflow-hidden shadow-lg shadow-indigo-500/10">
@@ -474,7 +314,7 @@ export default function App() {
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold text-slate-300">Trình Biên Tập Văn Bản</h1>
             <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-              {text.length} / 5,000 ký tự
+              {text.length.toLocaleString()} / 5,000 ký tự
             </div>
           </div>
           
@@ -586,30 +426,18 @@ export default function App() {
           
           {/* Voice Selector */}
           <div className="space-y-6">
-              <div className="p-4 bg-green-500/10 border border-green-500/40 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[11px] uppercase tracking-widest text-slate-500 font-bold flex items-center gap-2">
-                    <Mic2 size={14} className="text-green-400" /> Chế độ giọng đọc
-                  </label>
-                  <div className="p-1 px-2 bg-green-500/20 text-green-400 text-[9px] font-bold rounded-md border border-green-500/30 uppercase tracking-tighter">
-                    Google TTS
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
-                  Hệ thống ổn định tuyệt đối từ Google. Hỗ trợ văn bản dài không giới hạn.
-                </p>
-              </div>
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/40 rounded-xl">
+              <label className="text-[11px] uppercase tracking-widest text-slate-500 font-bold flex items-center gap-2 mb-1">
+                <Mic2 size={14} className="text-indigo-400" /> Chế độ giọng đọc
+              </label>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Đang sử dụng Cloud Voice: Giọng đọc AI chuyên nghiệp nhất hiện nay.
+              </p>
+            </div>
 
             <div>
               <label className="text-[11px] uppercase tracking-widest text-slate-500 font-bold mb-3 block flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2"><Languages size={14} /> Khu vực & Ngôn Ngữ</span>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="text-[9px] text-indigo-400/60 hover:text-indigo-400 font-mono tracking-tighter"
-                  title="Tải lại danh sách"
-                >
-                  [TẢI LẠI]
-                </button>
               </label>
               <div className="relative">
                 <select 
@@ -617,14 +445,8 @@ export default function App() {
                   onChange={(e) => {
                     const newLang = e.target.value;
                     setSelectedLang(newLang);
-                    
-                    if (useCloud) {
-                      const match = PRO_VOICES.find(v => newLang.startsWith(v.lang));
-                      if (match) setSelectedProVoice(match);
-                    } else {
-                      const firstVoiceOfLang = voices.find(v => v.lang === newLang)?.voice;
-                      if (firstVoiceOfLang) setSelectedVoice(firstVoiceOfLang);
-                    }
+                    const match = PRO_VOICES.find(v => newLang.startsWith(v.lang));
+                    if (match) setSelectedProVoice(match);
                   }}
                   className="w-full bg-[#1e293b]/60 text-slate-200 rounded-xl p-3 pr-10 appearance-none outline-none border border-slate-700 focus:border-indigo-500/50 text-sm font-medium transition-all"
                 >
@@ -641,7 +463,7 @@ export default function App() {
           
           <div className="flex-1 flex flex-col min-h-0 border-t border-slate-800 pt-6">
               <label className="text-[11px] uppercase tracking-widest text-slate-500 font-bold mb-3 block">
-                {(useCloud && (selectedLang.startsWith('vi') || PRO_VOICES.some(v => selectedLang.startsWith(v.lang)))) ? 'Chọn Giọng Đọc' : 'Giọng Đọc Hệ Thống'}
+                Chọn Giọng Đọc AI
               </label>
               
               <div className="space-y-4 flex-1 flex flex-col min-h-0">
@@ -669,65 +491,46 @@ export default function App() {
 
                 {/* Voice Grid */}
                 <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                  {(useCloud && (selectedLang.startsWith('vi') || PRO_VOICES.some(v => selectedLang.startsWith(v.lang)))) ? (
-                    filteredProVoices.map((v) => (
-                      <div 
-                        key={v.id}
-                        onClick={() => setSelectedProVoice(v)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer group relative ${
-                          selectedProVoice.id === v.id 
-                          ? 'bg-indigo-500/20 border-indigo-500 shadow-lg shadow-indigo-500/10' 
-                          : 'bg-slate-800/30 border-slate-800 hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter ${
-                            v.type === 'Nam' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'
-                          }`}>
-                            {v.type === 'Nam' ? '♂️ Nam' : '♀️ Nữ'}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-mono">{v.id.split('-').pop()?.replace('Neural','')}</span>
-                        </div>
-                        <div className="text-sm font-semibold text-white mb-2">{v.name}</div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePreviewVoice(v);
-                            }}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors ${
-                              isPreviewLoading === v.id 
-                              ? 'bg-slate-700 text-slate-500' 
-                              : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white'
-                            }`}
-                          >
-                            <Play size={10} fill="currentColor" />
-                            {isPreviewLoading === v.id ? 'Đang tải...' : 'Nghe thử'}
-                          </button>
-                        </div>
-                        {selectedProVoice.id === v.id && (
-                          <motion.div layoutId="active-indicator" className="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-indigo-500 rounded-r-full" />
-                        )}
+                  {filteredProVoices.map((v) => (
+                    <div 
+                      key={v.id}
+                      onClick={() => setSelectedProVoice(v)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer group relative ${
+                        selectedProVoice.id === v.id 
+                        ? 'bg-indigo-500/20 border-indigo-500 shadow-lg shadow-indigo-500/10' 
+                        : 'bg-slate-800/30 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter ${
+                          v.type === 'Nam' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'
+                        }`}>
+                          {v.type === 'Nam' ? '♂️ Nam' : '♀️ Nữ'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">{v.id.split('-').pop()?.replace('Neural','')}</span>
                       </div>
-                    ))
-                  ) : (
-                    voices
-                      .filter(v => v.lang === selectedLang)
-                      .map((v) => (
-                        <div 
-                          key={v.name}
-                          onClick={() => setSelectedVoice(v.voice)}
-                          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                            selectedVoice?.name === v.name 
-                            ? 'bg-indigo-500/20 border-indigo-500 shadow-lg shadow-indigo-500/10' 
-                            : 'bg-slate-800/30 border-slate-800 hover:border-slate-700'
+                      <div className="text-sm font-semibold text-white mb-2">{v.name}</div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewVoice(v);
+                          }}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors ${
+                            isPreviewLoading === v.id 
+                            ? 'bg-slate-700 text-slate-500' 
+                            : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white'
                           }`}
                         >
-                          <div className="text-sm font-semibold text-white truncate">{v.name}</div>
-                          <div className="text-[10px] text-slate-500 uppercase mt-1">Giọng hệ thống</div>
-                        </div>
-                      ))
-                  )}
+                          <Play size={10} fill="currentColor" />
+                          {isPreviewLoading === v.id ? 'Loading...' : 'Nghe thử'}
+                        </button>
+                      </div>
+                      {selectedProVoice.id === v.id && (
+                        <motion.div layoutId="active-indicator" className="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-indigo-500 rounded-r-full" />
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
